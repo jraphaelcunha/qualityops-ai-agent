@@ -1,5 +1,5 @@
 """
-Unit tests for deterministic PII guardrails.
+Unit tests for deterministic PII guardrails and credential sanitization.
 """
 
 from src.guardrails.pii_sanitizer import sanitize_text_and_extract_violations
@@ -15,6 +15,19 @@ def test_sanitize_credit_card_masking():
     assert violations[0].field_type == "CREDIT_CARD"
     assert violations[0].severity == "CRITICAL"
     assert violations[0].masked_value == "****-****-****-4444"
+
+
+def test_sanitize_api_key_masking():
+    raw_text = "Developer accidentally logged credentials: AIzaSyA1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q and sk-abc12345678901234567890"
+    sanitized, violations = sanitize_text_and_extract_violations(raw_text)
+
+    assert "[REDACTED_API_KEY]" in sanitized
+    assert "AIzaSy" not in sanitized
+    assert "sk-abc12345678901234567890" not in sanitized
+    assert len(violations) == 2
+    for v in violations:
+        assert v.field_type == "API_KEY"
+        assert v.severity == "CRITICAL"
 
 
 def test_sanitize_cpf_masking():

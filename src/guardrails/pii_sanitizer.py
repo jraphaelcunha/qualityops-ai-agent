@@ -1,34 +1,27 @@
 """
 Deterministic PII guardrails and sanitization utilities.
-Intercepts and redacts sensitive data (CPF, Credit Card, Email, Phone) prior to external LLM calls.
+Intercepts and redacts sensitive data (CPF, Credit Card, Email, Phone, API Keys) prior to external LLM calls.
 """
 
 import re
 
 from src.models.schemas import PIIViolation
 
-# High-precision regex patterns for sensitive data
 CPF_PATTERN = re.compile(r"\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b")
 CREDIT_CARD_PATTERN = re.compile(r"\b(?:\d{4}[-\s]?){3}\d{4}\b")
 EMAIL_PATTERN = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b")
 PHONE_PATTERN = re.compile(r"\b(?:\+?55\s?)?(?:\(?\d{2}\)?\s?)?(?:9\d{4}[-\s]?\d{4}|\d{4}[-\s]?\d{4})\b")
+API_KEY_PATTERN = re.compile(r"\b(?:sk-[a-zA-Z0-9_-]{20,}|AIzaSy[a-zA-Z0-9_-]{33}|ghp_[a-zA-Z0-9]{36})\b")
 
 
 def sanitize_text_and_extract_violations(raw_text: str) -> tuple[str, list[PIIViolation]]:
     """
-    Deterministic safety guardrail:
-    Intercepts personally identifiable information (PII) before transmission to external language models.
-
-    Args:
-        raw_text: Raw conversation string to inspect.
-
-    Returns:
-        tuple[str, list[PIIViolation]]: Sanitized text and list of recorded violations.
+    Deterministic safety guardrail intercepting sensitive data before external LLM dispatch.
+    Returns the sanitized text and structured violation contracts.
     """
     violations: list[PIIViolation] = []
     sanitized = raw_text
 
-    # 1. Detect and mask Credit Card numbers
     for match in CREDIT_CARD_PATTERN.finditer(sanitized):
         val = match.group(0)
         masked = f"****-****-****-{val[-4:]}" if len(val) >= 4 else "****"
@@ -41,7 +34,18 @@ def sanitize_text_and_extract_violations(raw_text: str) -> tuple[str, list[PIIVi
         )
     sanitized = CREDIT_CARD_PATTERN.sub("[REDACTED_CREDIT_CARD]", sanitized)
 
-    # 2. Detect and mask Brazilian CPF numbers
+    for match in API_KEY_PATTERN.finditer(sanitized):
+        val = match.group(0)
+        masked = f"{val[:4]}...{val[-4:]}" if len(val) >= 8 else "****"
+        violations.append(
+            PIIViolation(
+                field_type="API_KEY",
+                masked_value=masked,
+                severity="CRITICAL"
+            )
+        )
+    sanitized = API_KEY_PATTERN.sub("[REDACTED_API_KEY]", sanitized)
+
     for match in CPF_PATTERN.finditer(sanitized):
         val = match.group(0)
         masked = f"{val[:3]}.***.***-**"
@@ -54,7 +58,6 @@ def sanitize_text_and_extract_violations(raw_text: str) -> tuple[str, list[PIIVi
         )
     sanitized = CPF_PATTERN.sub("[REDACTED_CPF]", sanitized)
 
-    # 3. Detect and mask Email addresses
     for match in EMAIL_PATTERN.finditer(sanitized):
         val = match.group(0)
         parts = val.split("@")
@@ -68,7 +71,6 @@ def sanitize_text_and_extract_violations(raw_text: str) -> tuple[str, list[PIIVi
         )
     sanitized = EMAIL_PATTERN.sub("[REDACTED_EMAIL]", sanitized)
 
-    # 4. Detect and mask Phone numbers
     for match in PHONE_PATTERN.finditer(sanitized):
         val = match.group(0)
         masked = f"{val[:4]}****{val[-2:]}" if len(val) >= 6 else "****"
