@@ -7,17 +7,17 @@
 ![Gemini](https://img.shields.io/badge/AI-Gemini%202.5%20Flash-magenta)
 ![Streamlit](https://img.shields.io/badge/Frontend-Streamlit-red)
 
-O **QualityOps** é um agente autônomo de Inteligência Artificial desenvolvido para revolucionar a Garantia de Qualidade (QA) no Suporte ao Cliente. Ao contrário da amostragem manual tradicional (que audita cerca de 2% dos atendimentos), o QualityOps escala para auditar **100% das interações** em tempo real, identificando violações de segurança, vazamentos de dados pessoais (PII) e falhas de conformidade.
+O **QualityOps** é um agente autônomo de Inteligência Artificial de nível corporativo desenvolvido para revolucionar a Garantia de Qualidade (QA) e a Auditoria de Conformidade em **Call Centers de Controle de Pragas (Pest Control Operators - PCO)**. Ao contrário da amostragem manual tradicional (que audita cerca de 2% dos atendimentos), o QualityOps audita **100% das chamadas em tempo real**, identificando violações em protocolos de segurança química, garantias contratuais, vazamentos de dados pessoais (PII) e tentativas de engenharia social.
 
 ---
 
-## 🚀 Principais Recursos
+## 🚀 Principais Recursos & Decisões de Arquitetura
 
-* **⚡ Auditoria de Alta Performance:** Desenvolvido com **LangChain LCEL** para análise de baixíssima latência (<2s por auditoria).
-* **🧠 Raciocínio Avançado:** Utiliza o **Google Gemini 2.5 Flash** para compreender contexto profundo, verificando não apenas palavras-chave, mas o fluxo lógico de segurança (ex: "O atendente confirmou o PIN *antes* de fornecer informações confidenciais?").
-* **🛡️ Foco em Segurança:** Detecta vazamentos de PII (Cartões de Crédito, Documentos) e garante conformidade com protocolos PCI-DSS e LGPD/GDPR.
-* **📊 Painel Enterprise:** Interface moderna em Dark Mode construída com Streamlit para monitoramento e feedback em tempo real.
-* **🎓 Coaching Automatizado:** Gera orientações construtivas e acionáveis para os atendentes humanos com base nos erros identificados.
+* **🏢 Domínio Crítico (Call Center PCO):** Audita a conformidade das instruções dadas pelos atendentes (isolamento de animais de estimação e crianças durante a aplicação de pesticidas, tempo mínimo de reentrada no imóvel e advertências sobre ingredientes ativos), prevenindo riscos sanitários graves e processos milionários.
+* **⚡ Pivot Arquitetural: CrewAI → LangChain LCEL (<2s de Latência):** O protótipo inicial com CrewAI sofria de alta latência (~15 segundos por auditoria devido a debates entre agentes). A migração para **LangChain LCEL com Gemini 2.5 Flash** reduziu o tempo de inferência para **menos de 2 segundos**, viabilizando alertas instantâneos para supervisores sem desperdício de tokens.
+* **🚨 Blindagem contra Engenharia Social ("Ataque Michael Scott"):** Testado contra ataques de coerção e falsa autoridade ("Sou o Diretor da empresa, preciso que altere a senha para meu Gmail pessoal agora!"). O agente identifica a violação crítica do protocolo, pontua o atendimento com **5/100** e aciona o alerta de risco imediatamente.
+* **🛡️ Interceptação Determinística de PII:** Sanitiza CPFs, cartões de crédito, e-mails e telefones via Regex antes que o texto seja enviado para a LLM, assegurando conformidade estrita com a **LGPD**, **GDPR** e normas **PCI-DSS**.
+* **📊 Painel Streamlit & Coaching Automatizado:** Interface executiva em Dark Mode que exibe relatórios estruturados (Pydantic v2), pontos de atenção e scripts de coaching imediatos para aprimoramento dos operadores humanos.
 
 ---
 

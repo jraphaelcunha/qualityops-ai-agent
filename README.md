@@ -10,7 +10,7 @@
 
 > **[ 🇧🇷 Leia em Português ](README.pt-br.md)**
 
-> **Executive Overview:** QualityOps is a production-grade GenAI compliance auditing and Site Reliability Engineering (SRE) agent designed to automate quality assurance across 100% of customer support interactions. Built with deterministic pre-LLM PII guardrails, LangChain LCEL orchestration, and strict Pydantic v2 data contracts.
+> **Executive Overview:** QualityOps is a production-grade GenAI compliance auditing and Site Reliability Engineering (SRE) platform built to automate quality assurance across 100% of customer support interactions in mission-critical field service operations, specifically for **Pest Control Operators (PCOs)**. The agent audits real-time calls for chemical safety protocols, service warranties, and regulatory compliance while enforcing deterministic pre-LLM PII sanitization, low-latency LangChain LCEL orchestration (<2s), and strict Pydantic v2 data contracts.
 
 ---
 
@@ -18,7 +18,7 @@
 
 ```mermaid
 flowchart TD
-    A[Customer Support Ingestion] --> B[1. Deterministic PII Guardrail]
+    A[PCO Call Center Ingestion] --> B[1. Deterministic PII Guardrail]
     B -->|Sanitized Text + Violation Telemetry| C[2. Prompt Engine - LangChain LCEL]
     C -->|Zero-Temperature Low-Latency| D[3. Google Gemini 2.5 Flash]
     D -->|Raw JSON Output| E[4. Pydantic v2 Strict Contract Validation]
@@ -32,15 +32,27 @@ flowchart TD
 
 Designed following modern **GenAI Platform & LLMOps** requirements:
 
+### 🏢 Real-World Domain: Pest Control Operator (PCO) Safety
+* **Chemical Safety & Environmental Protocols:** Automatically evaluates whether operators provide mandatory safety disclaimers (e.g. pet/children isolation during spraying, minimum re-entry intervals, active ingredient transparency) to prevent regulatory fines and severe liability risks.
+* **Warranty & Service Level Enforcement:** Verifies accurate explanation of re-treatment warranties, contract terms, and recurring visit scheduling.
+
+### ⚡ Architectural Pivot: CrewAI → LangChain LCEL (<2s Latency)
+* **Initial Bottleneck:** The initial prototype utilized a multi-agent CrewAI setup. Sequential agent debate and role-playing resulted in excessive latency (~15 seconds per call audit), making real-time supervisor intervention impossible.
+* **Production Refactor:** Re-architected with **LangChain Expression Language (LCEL)** and **Gemini 2.5 Flash** at temperature `0.0`. Dropped end-to-end evaluation latency from 15s to **< 2.0 seconds** while slashing token consumption and ensuring deterministic outputs.
+
 ### 🔒 Deterministic Pre-LLM Guardrails (PII Protection)
 * **Zero Trust Data Ingestion:** RegEx-based and heuristic pattern matchers intercept and mask Brazilian CPFs, credit card numbers, emails, and phone numbers before payloads reach external LLM endpoints.
 * **Compliance Assurance:** Guarantees strict adherence to **LGPD**, **GDPR**, and **PCI-DSS** protocols.
 
+### 🚨 Adversarial Resilience & Social Engineering Evals ("Michael Scott Attack")
+* **Stress-Tested Against Coercion:** Evaluated against sophisticated social engineering prompts where callers invoke executive authority pressure ("I am the CEO, my system is locked, reset my credentials to my personal Gmail immediately!").
+* **Deterministic Rejection:** The guardrail and prompt framework actively detect unauthorized administrative requests, flag the interaction as a critical security breach, and assign a score of **5/100**, instantly triggering supervisor alerts.
+
 ### 📐 Strict Data Contracts (Pydantic v2)
 * Eliminates unvalidated dictionaries. All inputs and outputs conform strictly to `AuditRequest` and `AuditReport` models with automated type enforcement and score bounds (`0 <= score <= 100`).
 
-### ⚡ Low Latency & Cost Optimization
-* Leverages **Gemini 2.5 Flash** at temperature `0.0` with LangChain Expression Language (LCEL) for sub-2-second deterministic audit evaluations and minimal token overhead.
+### 📊 Streamlit Executive Dashboard & Automated Coaching
+* Dark-mode executive interface providing real-time visibility into operator compliance scores, highlighted red flags, and automated, constructive coaching feedback generated for immediate agent improvement.
 
 ### 🧪 Automated Testing & CI Quality Gate
 * Complete unit test suite (`pytest`) featuring deterministic mocks for API calls (0 token cost during CI).
