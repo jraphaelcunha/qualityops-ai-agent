@@ -31,7 +31,7 @@ jobs:
 
       - name: Run Linter (Ruff)
         run: |
-          ruff check src/ tests/ --exit-zero
+          ruff check src/ tests/
 
       - name: Run Unit Tests with Coverage (Pytest)
         env:

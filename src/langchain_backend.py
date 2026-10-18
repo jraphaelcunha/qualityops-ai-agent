@@ -152,7 +152,7 @@ def execute_compliance_audit(request: AuditRequest) -> AuditReport:
         )
 
     except Exception as exc:
-        logger.error("Audit pipeline execution failed: %s", exc, exc_info=True)
+        logger.exception("Audit pipeline execution failed: %s", exc)
         elapsed_ms = round((time.perf_counter() - start_time) * 1000, 2)
         hitl = _evaluate_hitl_escalation(0, True, detected_pii, request.conversation_text)
         return AuditReport(

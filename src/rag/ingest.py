@@ -37,8 +37,9 @@ def ingest_data():
         embedding=embeddings,
         persist_directory=VECTORSTORE_DIR
     )
-    
+
     print(f"Ingestion Complete. Database persisted at {VECTORSTORE_DIR}")
+    return vectorstore
 
 if __name__ == "__main__":
     ingest_data()

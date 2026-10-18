@@ -1,8 +1,16 @@
 """
-ARCHITECTURE NOTE: Prototype configuration using LiteLLM/Gemini. 
+ARCHITECTURE NOTE: Prototype configuration using LiteLLM/Gemini.
 For Production (AWS), switch to BedrockChat and ensure IAM Roles are configured for bedrock:InvokeModel permissions.
 """
 import os
+import signal
+import sys
+
+# Windows compatibility patch for crewai signal handlers
+if sys.platform.startswith("win"):
+    for sig_name in ("SIGHUP", "SIGQUIT", "SIGCONT", "SIGTSTP"):
+        if not hasattr(signal, sig_name):
+            setattr(signal, sig_name, 1)
 
 from crewai import Agent, Crew, Process, Task
 
@@ -47,8 +55,8 @@ def create_compliance_crew(chat_transcription: str) -> Crew:
         description=f"""
         Analyze the following chat transcription:
         '{chat_transcription}'
-        
-        Search the rules to verify if the agent followed protocol. 
+
+        Search the rules to verify if the agent followed protocol.
         Look specifically for PIN verification failures before account details were discussed.
         Check for any other compliance violations based on the retrieved rules.
         """,
