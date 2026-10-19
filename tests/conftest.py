@@ -2,8 +2,8 @@
 Pytest global fixtures and test configuration for QualityOps AI test suite.
 """
 
-from pathlib import Path
 import sys
+from pathlib import Path
 
 # Ensure repository root is on sys.path for direct pytest CLI invocations
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -11,6 +11,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 import pytest
+
 from src.models.schemas import AuditRequest
 
 

@@ -1,0 +1,62 @@
+[project]
+name = "qualityops-ai-agent"
+version = "0.1.0"
+description = "Deterministic quality assurance and compliance auditor for customer interactions."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "streamlit",
+    "google-generativeai",
+    "langchain",
+    "langchain-google-genai",
+    "langchain-core",
+    "python-dotenv",
+    "pydantic>=2.0.0",
+]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-v --strict-markers"
+
+[tool.coverage.run]
+source = ["src"]
+branch = true
+omit = [
+    "src/app.py",  # Streamlit UI visual entrypoint
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "B",    # flake8-bugbear
+    "BLE",  # flake8-blind-except
+    "G",    # flake8-logging-format
+    "S",    # flake8-bandit
+]
+ignore = [
+    "E501",  # line length handled by formatter
+    "E402",  # module level import not at top (handled by conftest sys.path setup)
+    "S101",  # allow assert in tests
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["src"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/app.py" = ["BLE001"]              # Streamlit UI visual top-level error boundary
+"src/main.py" = ["BLE001", "S105"]     # CLI top-level exception handler and dummy key
+"tests/*" = ["S101", "S105", "S106"]  # Assertions and mock token literals in unit tests

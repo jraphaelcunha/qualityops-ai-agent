@@ -25,18 +25,18 @@ def query_knowledge_base(query: str, k: int = 3):
 
     # Perform similarity search
     results = vectorstore.similarity_search(query, k=k)
-    
+
     return [doc.page_content for doc in results]
 
 if __name__ == "__main__":
     test_query = "What is the rule about PIN verification?"
     print(f"Querying: '{test_query}'...\n")
-    
+
     try:
         results = query_knowledge_base(test_query)
         for i, result in enumerate(results, 1):
             print(f"--- Result {i} ---")
             print(result)
             print("\n")
-    except Exception as e:
+    except (RuntimeError, ValueError, OSError) as e:
         print(f"An error occurred: {e}")
