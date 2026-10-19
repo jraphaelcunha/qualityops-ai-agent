@@ -1,5 +1,8 @@
-
-from crewai.tools import BaseTool
+try:
+    from crewai.tools import BaseTool
+except (ImportError, AttributeError):
+    class BaseTool:  # Fallback stub when crewai is unavailable
+        pass
 
 from src.rag.retriever import query_knowledge_base
 

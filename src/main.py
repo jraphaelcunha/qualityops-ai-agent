@@ -2,7 +2,6 @@ import json
 import logging
 import os
 import re
-import signal
 import sys
 
 from dotenv import load_dotenv
@@ -10,18 +9,7 @@ from dotenv import load_dotenv
 logger = logging.getLogger(__name__)
 
 load_dotenv()
-os.environ["OPENAI_API_KEY"] = "NA" # Dummy key to bypass CrewAI check
-
-# Windows compatibility patch for crewai
-if sys.platform.startswith("win"):
-    if not hasattr(signal, "SIGHUP"):
-        signal.SIGHUP = 1  # Dummy value
-    if not hasattr(signal, "SIGQUIT"):
-        signal.SIGQUIT = 3 # Dummy value
-    if not hasattr(signal, "SIGCONT"):
-        signal.SIGCONT = 18 # Dummy value
-    if not hasattr(signal, "SIGTSTP"):
-        signal.SIGTSTP = 20 # Dummy value
+os.environ["OPENAI_API_KEY"] = "NA"  # Dummy key to bypass CrewAI check
 
 # Add src to pythonpath
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))

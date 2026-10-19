@@ -3,31 +3,38 @@ ARCHITECTURE NOTE: Prototype configuration using LiteLLM/Gemini.
 For Production (AWS), switch to BedrockChat and ensure IAM Roles are configured for bedrock:InvokeModel permissions.
 """
 import os
-import signal
-import sys
+from typing import Any
 
-# Windows compatibility patch for crewai signal handlers
-if sys.platform.startswith("win"):
-    for sig_name in ("SIGHUP", "SIGQUIT", "SIGCONT", "SIGTSTP"):
-        if not hasattr(signal, sig_name):
-            setattr(signal, sig_name, 1)
-
-from crewai import Agent, Crew, Process, Task
+try:
+    from crewai import Agent, Crew, Process, Task
+    _CREWAI_AVAILABLE = True
+except (ImportError, AttributeError):
+    _CREWAI_AVAILABLE = False
+    Agent = Crew = Process = Task = None
 
 from src.agents.schemas import ComplianceResult
 from src.agents.tools import RulesSearchTool
 
 
-def validate_gemini_key():
+def validate_gemini_key() -> str:
     """Validate that GEMINI_API_KEY is set in environment"""
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
         raise ValueError("GEMINI_API_KEY not found in environment variables. Please set it in .env file.")
     return api_key
 
-def create_compliance_crew(chat_transcription: str) -> Crew:
+
+def create_compliance_crew(chat_transcription: str) -> Any:
     # Validate API key is present
     validate_gemini_key()
+
+    if not _CREWAI_AVAILABLE:
+        raise RuntimeError(
+            "CrewAI is not available or not supported on this platform. "
+            "QualityOps production architecture uses LangChain LCEL (src.langchain_backend). "
+            "Refer to README.md for the production pipeline."
+        )
+
     print("Using LLM: gemini/gemini-2.5-flash (via LiteLLM)")
 
     # --- Agents ---
