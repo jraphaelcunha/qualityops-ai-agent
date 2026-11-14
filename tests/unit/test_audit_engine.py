@@ -4,8 +4,9 @@ Unit tests for audit engine orchestration, LCEL latency tracking, and Pydantic d
 
 from unittest.mock import patch
 
-from pydantic import ValidationError
 import pytest
+from pydantic import ValidationError
+
 from src.langchain_backend import execute_compliance_audit
 from src.models.schemas import AuditReport, AuditRequest
 

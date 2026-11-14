@@ -1,9 +1,17 @@
 import os
 
-from langchain_chroma import Chroma
-from langchain_community.document_loaders import TextLoader
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+try:
+    from langchain_chroma import Chroma
+    from langchain_community.document_loaders import TextLoader
+    from langchain_huggingface import HuggingFaceEmbeddings
+    from langchain_text_splitters import RecursiveCharacterTextSplitter
+    _INGEST_AVAILABLE = True
+except ImportError:
+    _INGEST_AVAILABLE = False
+    Chroma = None
+    TextLoader = None
+    HuggingFaceEmbeddings = None
+    RecursiveCharacterTextSplitter = None
 
 # Paths
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data")
@@ -11,6 +19,10 @@ SOURCE_FILE = os.path.join(DATA_DIR, "grit_support_guidelines.md")
 VECTORSTORE_DIR = os.path.join(DATA_DIR, "vectorstore")
 
 def ingest_data():
+    if not _INGEST_AVAILABLE:
+        print("Error: Ingestion dependencies not installed.")
+        return None
+
     if not os.path.exists(SOURCE_FILE):
         print(f"Error: Source file not found at {SOURCE_FILE}")
         return
@@ -37,8 +49,9 @@ def ingest_data():
         embedding=embeddings,
         persist_directory=VECTORSTORE_DIR
     )
-    
+
     print(f"Ingestion Complete. Database persisted at {VECTORSTORE_DIR}")
+    return vectorstore
 
 if __name__ == "__main__":
     ingest_data()

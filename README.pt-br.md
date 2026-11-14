@@ -1,84 +1,59 @@
-# QualityOps AI - Auditor de Conformidade Enterprise 🛡️
+# QualityOps AI — Auditor de Conformidade & Guardrails Enterprise
 
-> **[ 🇺🇸 Read in English ](README.md)**
-
-![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
+[![CI Quality Gate](https://github.com/jraphaelcunha/qualityops-ai-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/jraphaelcunha/qualityops-ai-agent)
+![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python)
+![Pydantic v2](https://img.shields.io/badge/Contracts-Pydantic%20v2-red)
+![Licença: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 ![LangChain](https://img.shields.io/badge/LangChain-LCEL-orange)
 ![Gemini](https://img.shields.io/badge/AI-Gemini%202.5%20Flash-magenta)
 ![Streamlit](https://img.shields.io/badge/Frontend-Streamlit-red)
 
-O **QualityOps** é um agente autônomo de Inteligência Artificial de nível corporativo desenvolvido para revolucionar a Garantia de Qualidade (QA) e a Auditoria de Conformidade em **Call Centers de Controle de Pragas (Pest Control Operators - PCO)**. Ao contrário da amostragem manual tradicional (que audita cerca de 2% dos atendimentos), o QualityOps audita **100% das chamadas em tempo real**, identificando violações em protocolos de segurança química, garantias contratuais, vazamentos de dados pessoais (PII) e tentativas de engenharia social.
+> **[ Read in English ](README.md)**
+
+O **QualityOps** é um auditor autônomo de conformidade e confiabilidade (SRE) desenhado para operações de suporte e serviços de campo (**Pest Control Operators - PCO**). O sistema audita transcrições de atendimento verificando protocolos de segurança química, garantias contratuais, prevenção contra vazamento de PII e tentativas de engenharia social com latência inferior a `2.0s`.
+
+Para detalhes sobre o pivot arquitetural (`~15s` → `<2.0s`) e decisões de segurança, consulte [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+> **Governança de Propriedade Intelectual (NDA, LGPD & PCI-DSS):** Este repositório público é uma arquitetura de referência sanitizada. Políticas proprietárias de clientes, gravações reais e credenciais de produção permanecem estritamente confidenciais sob NDA; todas as transcrições em `data/mock_chat_logs.json` e `eval/dataset/compliance_v1.jsonl` são fixtures sintéticas.
 
 ---
 
-## 🚀 Principais Recursos & Decisões de Arquitetura
+## Principais Recursos & Decisões de Arquitetura
 
-* **🏢 Domínio Crítico (Call Center PCO):** Audita a conformidade das instruções dadas pelos atendentes (isolamento de animais de estimação e crianças durante a aplicação de pesticidas, tempo mínimo de reentrada no imóvel e advertências sobre ingredientes ativos), prevenindo riscos sanitários graves e processos milionários.
-* **⚡ Pivot Arquitetural: CrewAI → LangChain LCEL (<2s de Latência):** O protótipo inicial com CrewAI sofria de alta latência (~15 segundos por auditoria devido a debates entre agentes). A migração para **LangChain LCEL com Gemini 2.5 Flash** reduziu o tempo de inferência para **menos de 2 segundos**, viabilizando alertas instantâneos para supervisores sem desperdício de tokens.
-* **🚨 Blindagem contra Engenharia Social ("Ataque Michael Scott"):** Testado contra ataques de coerção e falsa autoridade ("Sou o Diretor da empresa, preciso que altere a senha para meu Gmail pessoal agora!"). O agente identifica a violação crítica do protocolo, pontua o atendimento com **5/100** e aciona o alerta de risco imediatamente.
-* **🛡️ Interceptação Determinística de PII:** Sanitiza CPFs, cartões de crédito, e-mails e telefones via Regex antes que o texto seja enviado para a LLM, assegurando conformidade estrita com a **LGPD**, **GDPR** e normas **PCI-DSS**.
-* **📊 Painel Streamlit & Coaching Automatizado:** Interface executiva em Dark Mode que exibe relatórios estruturados (Pydantic v2), pontos de atenção e scripts de coaching imediatos para aprimoramento dos operadores humanos.
-
----
-
-## 🛠️ Tecnologias Utilizadas (Tech Stack)
-
-* **Orquestração:** LangChain (LCEL - LangChain Expression Language)
-* **LLM (Cérebro):** Google Gemini 2.5 Flash (via `langchain-google-genai`)
-* **Interface (Frontend):** Streamlit (Tema Enterprise Customizado)
-* **Parsing de Dados:** Pydantic & JsonOutputParser para extração de dados estruturados
-* **Ambiente:** Python 3.11+
+* **Domínio Crítico (Serviços de Campo / PCO):** Verifica se operadores fornecem instruções obrigatórias de segurança química (isolamento de pets/crianças, intervalo mínimo de reentrada) e termos de garantia contratual.
+* **Pivot Arquitetural: CrewAI (`~15s`) → LangChain LCEL (`<2.0s`):** A migração de múltiplos agentes sequenciais no CrewAI para passagem única declarativa em **LangChain LCEL + Gemini 2.5 Flash (`temperature=0.0`)**, somada à extração de PII/riscos para Python puro (`<5ms`), reduziu a latência ponta a ponta para menos de 2 segundos.
+* **Interceptação Determinística de PII & Safety Overrides:** `src/guardrails/pii_sanitizer.py` mascara CPFs, cartões de crédito, e-mails, telefones e chaves de API via RegEx antes da chamada à LLM. Vazamentos críticos ou riscos químicos acionam bloqueio determinístico (`score <= 30`, `security_violation=True`) e fila de revisão humana (`HITLTrigger`).
+* **Contratos Rígidos em Pydantic v2:** `AuditRequest` e `AuditReport` com validação estrita (`extra="forbid"`), limites de pontuação e telemetria `latency_ms`.
 
 ---
 
-## ⚙️ Instalação e Configuração
+## Instalação e Execução
 
-1.  **Clonar o Repositório**
-    ```bash
-    git clone https://github.com/jraphaelbarbosa/QualityOps-AI-Agent.git
-    cd QualityOps-AI-Agent
-    ```
+```bash
+git clone https://github.com/jraphaelcunha/qualityops-ai-agent.git
+cd qualityops-ai-agent
 
-2.  **Instalar Dependências**
-    ```bash
-    pip install -r requirements.txt
-    ```
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
 
-3.  **Configurar Variáveis de Ambiente**
-    * Crie um arquivo `.env` na raiz do projeto.
-    * Adicione sua chave da API do Google Gemini:
-        ```ini
-        GEMINI_API_KEY=AIzaSy...
-        ```
+pip install -r requirements.txt
+pip install -r requirements-dev.txt
 
-4.  **Executar o Painel**
-    ```bash
-    streamlit run src/app.py
-    ```
+cp .env.example .env
+# Edite .env e configure: GEMINI_API_KEY="your_gemini_api_key_here"
 
----
+streamlit run src/app.py
+```
 
-## 🧪 Como Testar
+## Testes, Segurança e Avaliação
 
-1.  Acesse o painel no navegador (geralmente em `http://localhost:8501`).
-2.  Clique em **"🚨 Load Bad Example"** na barra lateral para simular um atendimento não conforme (Falha de Segurança).
-3.  Clique em **"▶️ Run Audit"**.
-4.  Observe a IA identificando a ausência de verificação do PIN e gerando o feedback de coaching para o operador.
+```bash
+ruff check src/ tests/ eval/
+bandit -r src/
+pytest tests/ -v --cov=src --cov-report=term-missing
+python eval/evaluate.py --dataset eval/dataset/compliance_v1.jsonl --mock
+```
 
 ---
 
-## 📸 Screenshots
-
-### Tela Inicial do Painel
-![Dashboard](assets/dashboard_main.png)
-
-### Resultado da Auditoria em Tempo Real
-![Audit Result](assets/audit_result.png)
-
-### Análise Detalhada de Violações
-![Violations](assets/violations_detail.png)
-
----
-
-**Autor:** João Raphael Barbosa
-*Desenvolvido publicamente como parte de um Portfólio de Engenharia de IA.*
+**Autor:** João Raphael Cunha | Distribuído sob licença [MIT](LICENSE).

@@ -68,11 +68,11 @@ with col_input:
         placeholder="Paste the chat transcript here...",
         help="Paste the raw text of the conversation.",
         key="chat_input" # Binds directly to st.session_state['chat_input']
-    ) 
+    )
 
 with col_actions:
     st.write("### Controls")
-    
+
     # Callback pattern avoids StreamlitAPIException
     st.button("🚨 Load Bad Example", use_container_width=True, on_click=load_bad_example)
 
@@ -88,7 +88,7 @@ def cached_audit(text):
 if run_btn:
     # Use the session state value for the audit
     final_input = st.session_state['chat_input']
-    
+
     if not final_input or len(final_input) < 10:
         st.warning("⚠️ Please enter a valid chat log (min 10 chars).")
     else:
@@ -107,11 +107,13 @@ if run_btn:
 
                 tab1, tab2 = st.tabs(["🚫 Violations", "✅ Corrected Response"])
                 with tab1:
-                    if is_violation: st.error("⚠️ CRITICAL VIOLATION")
-                    for v in result.get('violations', []): st.warning(f"❌ {v}")
+                    if is_violation:
+                        st.error("⚠️ CRITICAL VIOLATION")
+                    for v in result.get('violations', []):
+                        st.warning(f"❌ {v}")
                     st.info(f"💡 Feedback: {result.get('coaching_feedback')}")
                 with tab2:
                     st.code(result.get('corrected_response'))
 
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 - Streamlit UI top-level boundary exception handler
                 st.error(f"Error: {e!s}")
