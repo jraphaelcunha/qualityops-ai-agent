@@ -8,6 +8,7 @@ import logging
 import os
 import re
 import time
+from typing import Any
 
 from dotenv import load_dotenv
 from langchain_core.output_parsers import JsonOutputParser
@@ -47,6 +48,21 @@ You MUST respond strictly in valid JSON format with the following exact keys:
     "eval_metric_pass": <true if score >= 70 and security_violation is false, else false>
 }}
 """
+
+
+def _coerce_bool(value: Any, default: bool = False) -> bool:
+    """Parse boolean flags safely without treating string literals like 'false' as truthy."""
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {"true", "1", "yes"}:
+            return True
+        if normalized in {"false", "0", "no", ""}:
+            return False
+    return default
 
 
 def _evaluate_hitl_escalation(
@@ -91,6 +107,7 @@ def execute_compliance_audit(request: AuditRequest) -> AuditReport:
     start_time = time.perf_counter()
     sanitized_text, detected_pii = sanitize_text_and_extract_violations(request.conversation_text)
     has_critical_pii = any(item.severity == "CRITICAL" for item in detected_pii)
+    has_chemical_hazard = bool(HAZARD_KEYWORDS_PATTERN.search(request.conversation_text))
 
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
@@ -128,13 +145,24 @@ def execute_compliance_audit(request: AuditRequest) -> AuditReport:
         raw_result = chain.invoke({"sanitized_conversation": sanitized_text})
         elapsed_ms = round((time.perf_counter() - start_time) * 1000, 2)
 
-        score = int(raw_result.get("score", 50))
-        security_violation = bool(raw_result.get("security_violation", has_critical_pii))
-        eval_pass = bool(raw_result.get("eval_metric_pass", False))
+        score = max(0, min(100, int(raw_result.get("score", 50))))
+        security_violation = _coerce_bool(raw_result.get("security_violation"), has_critical_pii)
+        eval_pass = _coerce_bool(raw_result.get("eval_metric_pass"), False)
+        violations = list(raw_result.get("violations", []) or [])
 
-        if has_critical_pii and score > 40:
-            score = 30
+        if has_critical_pii or has_chemical_hazard:
+            score = min(score, 30)
             security_violation = True
+            eval_pass = False
+            if has_critical_pii:
+                pii_note = "Critical PII exposure intercepted by deterministic guardrail"
+                if pii_note not in violations:
+                    violations.append(pii_note)
+            if has_chemical_hazard:
+                hazard_note = "Critical safety/chemical hazard protocol escalation mandated"
+                if hazard_note not in violations:
+                    violations.append(hazard_note)
+        elif security_violation or score < 70:
             eval_pass = False
 
         hitl = _evaluate_hitl_escalation(score, security_violation, detected_pii, request.conversation_text)
@@ -143,7 +171,7 @@ def execute_compliance_audit(request: AuditRequest) -> AuditReport:
             score=score,
             security_violation=security_violation,
             pii_detected=detected_pii,
-            violations=raw_result.get("violations", []),
+            violations=violations,
             coaching_feedback=str(raw_result.get("coaching_feedback", "")),
             corrected_response=str(raw_result.get("corrected_response", "")),
             eval_metric_pass=eval_pass,

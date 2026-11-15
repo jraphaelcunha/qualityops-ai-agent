@@ -142,7 +142,9 @@ def run_evaluation(
                 override_ok = (
                     report.hitl_trigger.required is True
                     and report.hitl_trigger.priority == "CRITICAL"
-                    and (not any(p.severity == "CRITICAL" for p in detected_pii) or report.score <= 30)
+                    and report.score <= 30
+                    and report.security_violation is True
+                    and report.eval_metric_pass is False
                 )
             else:
                 override_ok = True

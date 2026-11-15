@@ -112,3 +112,110 @@ def test_execute_audit_with_mocked_llm(
         assert report.latency_ms >= 0.0
         assert report.hitl_trigger.required is False
         assert "Excellent" in report.coaching_feedback
+
+
+@patch("src.langchain_backend.ChatGoogleGenerativeAI")
+def test_chemical_hazard_forces_critical_override_even_with_permissive_llm(
+    mock_llm_cls, monkeypatch
+):
+    """Chemical/safety hazard transcripts must force score <= 30, violation=True, eval_pass=False."""
+    monkeypatch.setenv("GEMINI_API_KEY", "mock_key_for_testing")
+    req = AuditRequest(
+        conversation_text=(
+            "Customer: There was a toxic chemical spill with chlorine fumes in our storage room!"
+        ),
+        channel="field_support",
+    )
+
+    with patch("langchain_core.prompts.PromptTemplate.__or__") as mock_pipeline:
+        mock_chain = mock_pipeline.return_value.__or__.return_value
+        mock_chain.invoke.return_value = {
+            "score": 90,
+            "security_violation": False,
+            "violations": [],
+            "coaching_feedback": "Offered callback.",
+            "corrected_response": "Escalate hazmat team.",
+            "eval_metric_pass": True,
+        }
+        report = execute_compliance_audit(req)
+
+    assert report.score <= 30
+    assert report.security_violation is True
+    assert report.eval_metric_pass is False
+    assert report.hitl_trigger.required is True
+    assert report.hitl_trigger.priority == "CRITICAL"
+
+
+@patch("src.langchain_backend.ChatGoogleGenerativeAI")
+def test_critical_pii_forces_override_when_score_below_40_and_string_booleans(
+    mock_llm_cls, sample_pii_violation_conversation, monkeypatch
+):
+    """Critical PII must enforce score <= 30, violation=True, eval_pass=False regardless of LLM score."""
+    monkeypatch.setenv("GEMINI_API_KEY", "mock_key_for_testing")
+
+    with patch("langchain_core.prompts.PromptTemplate.__or__") as mock_pipeline:
+        mock_chain = mock_pipeline.return_value.__or__.return_value
+        mock_chain.invoke.return_value = {
+            "score": 35,
+            "security_violation": "false",
+            "violations": [],
+            "coaching_feedback": "Store securely.",
+            "corrected_response": "Use encrypted form.",
+            "eval_metric_pass": "false",
+        }
+        report = execute_compliance_audit(sample_pii_violation_conversation)
+
+    assert report.score <= 30
+    assert report.security_violation is True
+    assert report.eval_metric_pass is False
+    assert report.hitl_trigger.required is True
+    assert report.hitl_trigger.priority == "CRITICAL"
+
+
+@patch("src.langchain_backend.ChatGoogleGenerativeAI")
+def test_string_false_booleans_from_llm_do_not_coerce_to_true(
+    mock_llm_cls, sample_clean_conversation, monkeypatch
+):
+    """String 'false' from JSON LLM payloads must parse as False, not Python truthy bool('false')."""
+    monkeypatch.setenv("GEMINI_API_KEY", "mock_key_for_testing")
+
+    with patch("langchain_core.prompts.PromptTemplate.__or__") as mock_pipeline:
+        mock_chain = mock_pipeline.return_value.__or__.return_value
+        mock_chain.invoke.return_value = {
+            "score": 92,
+            "security_violation": "false",
+            "violations": [],
+            "coaching_feedback": "Verified identity cleanly.",
+            "corrected_response": "Compliant interaction.",
+            "eval_metric_pass": "false",
+        }
+        report = execute_compliance_audit(sample_clean_conversation)
+
+    assert report.security_violation is False
+    assert report.eval_metric_pass is False
+    assert report.hitl_trigger.required is False
+
+
+@patch("src.langchain_backend.ChatGoogleGenerativeAI")
+def test_eval_metric_pass_blocked_when_low_score_or_security_violation(
+    mock_llm_cls, sample_clean_conversation, monkeypatch
+):
+    """Low scores (<70) or security violations must prevent eval_metric_pass from remaining True."""
+    monkeypatch.setenv("GEMINI_API_KEY", "mock_key_for_testing")
+
+    with patch("langchain_core.prompts.PromptTemplate.__or__") as mock_pipeline:
+        mock_chain = mock_pipeline.return_value.__or__.return_value
+        mock_chain.invoke.return_value = {
+            "score": 45,
+            "security_violation": False,
+            "violations": ["Skipped disclosure"],
+            "coaching_feedback": "Include mandatory disclaimer.",
+            "corrected_response": "Corrected script.",
+            "eval_metric_pass": True,
+        }
+        report = execute_compliance_audit(sample_clean_conversation)
+
+    assert report.eval_metric_pass is False
+    assert report.hitl_trigger.required is True
+    assert report.hitl_trigger.priority == "HIGH"
+
