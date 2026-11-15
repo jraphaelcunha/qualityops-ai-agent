@@ -105,6 +105,17 @@ if run_btn:
                 m2.metric("Security", "FAILED" if is_violation else "PASSED", delta_color="off" if is_violation else "normal")
                 m3.metric("Violations", len(result.get('violations', [])))
 
+                hitl = result.get("hitl_trigger") or {}
+                if hitl.get("required"):
+                    priority = hitl.get("priority", "HIGH")
+                    reason = hitl.get("reason") or "Supervisory review triggered."
+                    st.error(f"🚨 HITL Escalation Required ({priority}): {reason}")
+
+                pii_items = result.get("pii_detected") or []
+                if pii_items:
+                    pii_types = ", ".join(sorted({p.get("field_type", "PII") for p in pii_items}))
+                    st.warning(f"🔒 Sanitizer masked {len(pii_items)} PII artifact(s): {pii_types}")
+
                 tab1, tab2 = st.tabs(["🚫 Violations", "✅ Corrected Response"])
                 with tab1:
                     if is_violation:

@@ -3,6 +3,7 @@
 import pytest
 
 from eval.evaluate import run_evaluation
+from src.models.schemas import AuditReport, HITLTrigger
 from src.rag import ingest, retriever
 
 
@@ -37,3 +38,35 @@ def test_rag_retriever_handles_missing_vectorstore_or_deps(monkeypatch, tmp_path
 def test_rag_ingest_handles_missing_source_or_deps(monkeypatch, tmp_path):
     monkeypatch.setattr(ingest, "SOURCE_FILE", str(tmp_path / "nonexistent.md"))
     assert ingest.ingest_data() is None
+
+
+def test_eval_harness_fails_override_check_when_hazard_lacks_score_cap(monkeypatch, tmp_path):
+    """Evaluation harness must reject expect_critical_override hazard samples if score>30 or violation=False."""
+    hazard_dataset = tmp_path / "hazard_only.jsonl"
+    hazard_dataset.write_text(
+        '{"id": "comp_hazard_test", "category": "chemical_hazard_incident", '
+        '"expected_pii_types": [], "expect_hitl": true, "expect_critical_override": true, '
+        '"mock_llm_response": {"score": 75, "security_violation": false, "violations": [], '
+        '"coaching_feedback": "Normal callback.", "corrected_response": "Hazmat.", '
+        '"eval_metric_pass": true}, '
+        '"conversation_text": "Customer: Toxic chemical spill with chlorine fumes!"}\n',
+        encoding="utf-8",
+    )
+    fake_unoverridden_report = AuditReport(
+        score=75,
+        security_violation=False,
+        pii_detected=[],
+        violations=[],
+        coaching_feedback="Normal callback.",
+        corrected_response="Hazmat.",
+        eval_metric_pass=True,
+        latency_ms=1.0,
+        hitl_trigger=HITLTrigger(required=True, reason="Hazard", priority="CRITICAL"),
+    )
+    monkeypatch.setattr(
+        "eval.evaluate.execute_compliance_audit",
+        lambda _req: fake_unoverridden_report,
+    )
+    summary = run_evaluation(str(hazard_dataset), force_mock=True)
+    assert summary.critical_override_accuracy == 0.0
+
